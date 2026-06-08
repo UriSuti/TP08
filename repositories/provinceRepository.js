@@ -1,4 +1,3 @@
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -9,12 +8,15 @@ if (!hasDatabaseUrl && !hasDbParts) {
   throw new Error('No database configuration found. Set DATABASE_URL or DB_HOST/DB_USER/DB_PASSWORD in .env');
 }
 
+const useSsl = process.env.DB_SSL === 'true';
+const sslConfig = useSsl ? { rejectUnauthorized: false } : false;
+
 let pool;
 try {
   const { Pool } = await import('pg');
   if (hasDatabaseUrl) {
     try {
-      pool = new Pool({ connectionString: process.env.DATABASE_URL.trim(), ssl: { rejectUnauthorized: false } });
+      pool = new Pool({ connectionString: process.env.DATABASE_URL.trim(), ssl: sslConfig });
     } catch (err) {
       throw new Error(`Invalid DATABASE_URL: ${err.message}`);
     }
@@ -26,14 +28,13 @@ try {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME || 'postgres',
-        ssl: { rejectUnauthorized: false }
+        ssl: sslConfig
       });
     } catch (err) {
       throw new Error(`Invalid DB_* configuration: ${err.message}`);
     }
   }
 } catch (err) {
-  // rethrow with guidance
   throw new Error(`Postgres pool creation failed: ${err.message}. Ensure .env contains a valid DATABASE_URL or DB_HOST/DB_USER/DB_PASSWORD.`);
 }
 
@@ -76,11 +77,4 @@ const remove = async (id) => {
   return res.rowCount > 0;
 };
 
-export default {
-  getAll,
-  getById,
-  add,
-  addWithId,
-  update,
-  remove
-};
+export default { getAll, getById, add, addWithId, update, remove };
